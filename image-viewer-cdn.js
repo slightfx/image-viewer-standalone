@@ -723,6 +723,10 @@ class ImageViewerStandalone {
         }
     }
     showEndPage() {
+
+        if (this.onCompleteCallbacks.length > 0) {
+            this.onCompleteCallbacks.forEach(callback => callback());
+        }
         this.contentContainer.innerHTML = '';
         
         // Set flex container properties on contentContainer to ensure full centering
