@@ -222,6 +222,7 @@ class ImageViewerStandalone {
                 box-sizing: border-box;
                 background: #fff;
                 padding-bottom: 0px;
+                background-color: #f4f4f4;
             }
             
             .viewer-image-container img {
@@ -582,7 +583,7 @@ class ImageViewerStandalone {
 
             .chat-bubble {
                 position: absolute;
-                bottom: 57px;
+                bottom: 49px;
                 right: 9px;
                 background: var(--viewer-description-bg);
                 color: var(--viewer-text);
@@ -595,6 +596,8 @@ class ImageViewerStandalone {
                 z-index: 10;
                 pointer-events: auto;
                 animation: fadeInBubble 0.3s ease-out;
+                transition: opacity 0.3s ease;
+                cursor: pointer;
             }
 
     
@@ -777,6 +780,7 @@ class ImageViewerStandalone {
             if (boxData.description) {
                 const chatBubble = document.createElement('div');
                 chatBubble.className = 'chat-bubble';
+                chatBubble.style.fontSize = '12px';
                 
                 // Use marked.js to render markdown if available, otherwise fallback to plain text
                 if (typeof marked !== 'undefined') {
@@ -784,6 +788,19 @@ class ImageViewerStandalone {
                 } else {
                     chatBubble.textContent = boxData.description;
                 }
+                
+                // Add hover toggle functionality
+                let isVisible = true;
+                chatBubble.addEventListener('mouseenter', () => {
+                    isVisible = !isVisible;
+                    chatBubble.style.opacity = isVisible ? '1' : '0';
+                });
+                
+                chatBubble.addEventListener('mouseleave', () => {
+                    // Restore visibility when mouse leaves
+                    isVisible = true;
+                    chatBubble.style.opacity = '1';
+                });
                 
                 // Add chat bubble to the image wrapper
                 imageWrapper.appendChild(chatBubble);
