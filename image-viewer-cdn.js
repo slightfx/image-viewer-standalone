@@ -29,6 +29,11 @@ class ImageViewerStandalone {
         this.exitStep = 0;
         this.demoStarted = false;
         
+        // Track visited positions for navigation
+        this.visitedPositions = new Set();
+        this.maxVisitedImageIndex = 0;
+        this.maxVisitedBoxIndex = 0;
+        
         // User data
         this.userData = {
             userId: config.userId || 0,
@@ -54,7 +59,94 @@ class ImageViewerStandalone {
                     this.showGroup(this.currentGroup);
                 }
             }
+            
+            // Handle arrow key navigation
+            if (this.demoStarted && this.currentGroup && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+                e.preventDefault();
+                this.handleArrowNavigation(e.key);
+            }
         });
+    }
+
+    handleArrowNavigation(key) {
+        if (!this.currentGroup || !this.currentGroup.images) return;
+        
+        if (key === 'ArrowRight') {
+            this.navigateNext();
+        } else if (key === 'ArrowLeft') {
+            this.navigatePrevious();
+        }
+    }
+
+    navigateNext() {
+        const imgData = this.currentGroup.images[this.currentImageIndex];
+        let nextImageIndex = this.currentImageIndex;
+        let nextBoxIndex = this.currentBoxIndex;
+        
+        // Calculate next position
+        if (this.currentBoxIndex < imgData.boxes.length - 1) {
+            nextBoxIndex = this.currentBoxIndex + 1;
+        } else if (this.currentImageIndex < this.currentGroup.images.length - 1) {
+            nextImageIndex = this.currentImageIndex + 1;
+            nextBoxIndex = 0;
+        } else {
+            // At the end, can't go further
+            return;
+        }
+        
+        // Check if navigation is allowed
+        if (this.canNavigateToPosition(nextImageIndex, nextBoxIndex)) {
+            this.currentImageIndex = nextImageIndex;
+            this.currentBoxIndex = nextBoxIndex;
+            this.showGroup(this.currentGroup);
+        }
+    }
+
+    navigatePrevious() {
+        let prevImageIndex = this.currentImageIndex;
+        let prevBoxIndex = this.currentBoxIndex;
+        
+        // Calculate previous position
+        if (this.currentBoxIndex > 0) {
+            prevBoxIndex = this.currentBoxIndex - 1;
+        } else if (this.currentImageIndex > 0) {
+            prevImageIndex = this.currentImageIndex - 1;
+            const prevImgData = this.currentGroup.images[prevImageIndex];
+            prevBoxIndex = prevImgData.boxes.length - 1;
+        } else {
+            // At the beginning, can't go back further
+            return;
+        }
+        
+        // Check if navigation is allowed
+        if (this.canNavigateToPosition(prevImageIndex, prevBoxIndex)) {
+            this.currentImageIndex = prevImageIndex;
+            this.currentBoxIndex = prevBoxIndex;
+            this.showGroup(this.currentGroup);
+        }
+    }
+
+    canNavigateToPosition(imageIndex, boxIndex) {
+        // If demo is completed, allow navigation anywhere
+        if (this.completed) {
+            return true;
+        }
+        
+        // If demo is not completed, only allow navigation to visited positions
+        const positionKey = `${imageIndex}-${boxIndex}`;
+        return this.visitedPositions.has(positionKey);
+    }
+
+    markCurrentPositionAsVisited() {
+        const positionKey = `${this.currentImageIndex}-${this.currentBoxIndex}`;
+        this.visitedPositions.add(positionKey);
+        
+        // Update max visited indices for easier tracking
+        if (this.currentImageIndex > this.maxVisitedImageIndex || 
+            (this.currentImageIndex === this.maxVisitedImageIndex && this.currentBoxIndex > this.maxVisitedBoxIndex)) {
+            this.maxVisitedImageIndex = this.currentImageIndex;
+            this.maxVisitedBoxIndex = this.currentBoxIndex;
+        }
     }
 
     setupStyles() {
@@ -427,6 +519,68 @@ class ImageViewerStandalone {
             .instruction-content p:last-child {
                 margin-bottom: 0;
             }
+
+            .pagination-container {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                padding: 20px 0;
+                margin-top: 10px;
+                gap: 8px;
+                flex-wrap: wrap;
+            }
+
+            .pagination-dot {
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                border: 2px solid transparent;
+                position: relative;
+            }
+
+            .pagination-dot.not-completed {
+                background: #ccc;
+            }
+
+            .pagination-dot.completed {
+                background: #28a745;
+            }
+
+            .pagination-dot.current {
+                background: #0D99FF;
+                border: 2px solid #0B7ACC;
+                transform: scale(1.2);
+            }
+
+            .pagination-dot.clickable:hover {
+                transform: scale(1.3);
+                opacity: 0.8;
+            }
+
+            .pagination-dot.not-clickable {
+                cursor: not-allowed;
+                opacity: 0.5;
+            }
+
+            .pagination-info {
+                display: flex;
+                align-items: center;
+                gap: 15px;
+                margin-left: 15px;
+                font-size: 14px;
+                color: var(--viewer-text);
+            }
+
+            .pagination-progress {
+                font-weight: 600;
+            }
+
+            .pagination-remaining {
+                color: var(--viewer-text);
+                opacity: 0.7;
+            }
         `;
         
         const styleElement = document.createElement('style');
@@ -533,6 +687,9 @@ class ImageViewerStandalone {
         this.contentContainer.innerHTML = ''; // Clear previous content
         this.demoStarted = true; // Set flag when demo content is shown
 
+        // Mark current position as visited
+        this.markCurrentPositionAsVisited();
+
         if (!group || !group.images || group.images.length === 0) {
             this.contentContainer.textContent = 'Error: Invalid group data or no images found.';
             return;
@@ -608,6 +765,114 @@ class ImageViewerStandalone {
         imageContainer.appendChild(imageWrapper);
         
         this.contentContainer.appendChild(imageContainer);
+        
+        // Add pagination
+        this.createPagination();
+    }
+
+    createPagination() {
+        if (!this.currentGroup || !this.currentGroup.images) return;
+        
+        const paginationContainer = document.createElement('div');
+        paginationContainer.className = 'pagination-container';
+        
+        // Create dots for each step (image + box combination)
+        let stepIndex = 0;
+        this.currentGroup.images.forEach((imgData, imageIndex) => {
+            if (imgData.boxes && imgData.boxes.length > 0) {
+                imgData.boxes.forEach((boxData, boxIndex) => {
+                    const dot = document.createElement('div');
+                    dot.className = 'pagination-dot';
+                    
+                    // Determine dot state
+                    const isCurrentPosition = imageIndex === this.currentImageIndex && boxIndex === this.currentBoxIndex;
+                    const isCompleted = this.isImageCompleted(imageIndex, boxIndex);
+                    const canNavigate = this.canNavigateToImage(imageIndex, boxIndex);
+                    
+                    if (isCurrentPosition) {
+                        dot.classList.add('current');
+                    } else if (isCompleted) {
+                        dot.classList.add('completed');
+                    } else {
+                        dot.classList.add('not-completed');
+                    }
+                    
+                    if (canNavigate) {
+                        dot.classList.add('clickable');
+                        dot.onclick = () => this.navigateToImage(imageIndex, boxIndex);
+                    } else {
+                        dot.classList.add('not-clickable');
+                    }
+                    
+                    paginationContainer.appendChild(dot);
+                    stepIndex++;
+                });
+            }
+        });
+        
+        // Add progress info
+        const progressInfo = document.createElement('div');
+        progressInfo.className = 'pagination-info';
+        
+        const currentStep = this.getCurrentStepNumber();
+        const totalSteps = this.totalSteps;
+        const completedSteps = this.getCompletedImageCount();
+        
+        const progressText = document.createElement('span');
+        progressText.className = 'pagination-progress';
+        progressText.textContent = `Step ${currentStep} of ${totalSteps}`;
+        progressInfo.appendChild(progressText);
+        
+        const remainingText = document.createElement('span');
+        remainingText.className = 'pagination-remaining';
+        remainingText.textContent = `(${completedSteps} completed)`;
+        progressInfo.appendChild(remainingText);
+        
+        paginationContainer.appendChild(progressInfo);
+        this.contentContainer.appendChild(paginationContainer);
+    }
+
+    isImageCompleted(imageIndex, boxIndex) {
+        // Check if this position has been visited
+        const positionKey = `${imageIndex}-${boxIndex}`;
+        return this.visitedPositions.has(positionKey);
+    }
+
+    getCompletedImageCount() {
+        // Count how many positions have been visited
+        return this.visitedPositions.size;
+    }
+
+    canNavigateToImage(imageIndex, boxIndex) {
+        // If demo is completed, allow navigation anywhere
+        if (this.completed) {
+            return true;
+        }
+        
+        // If demo is not completed, only allow navigation to visited positions
+        const positionKey = `${imageIndex}-${boxIndex}`;
+        return this.visitedPositions.has(positionKey);
+    }
+
+    navigateToImage(imageIndex, boxIndex) {
+        if (this.canNavigateToImage(imageIndex, boxIndex)) {
+            this.currentImageIndex = imageIndex;
+            this.currentBoxIndex = boxIndex;
+            this.showGroup(this.currentGroup);
+        }
+    }
+
+    getCurrentStepNumber() {
+        // Calculate current step number based on current position
+        let stepNumber = 1;
+        for (let i = 0; i < this.currentImageIndex; i++) {
+            const imgData = this.currentGroup.images[i];
+            if (imgData.boxes) {
+                stepNumber += imgData.boxes.length;
+            }
+        }
+        stepNumber += this.currentBoxIndex + 1;
+        return stepNumber;
     }
 
     setupImageAndBoxes(imgData, imageElement, imageWrapper, boxOverlay, group) {
@@ -805,6 +1070,12 @@ class ImageViewerStandalone {
             this.startTime = Date.now(); // Reset timer
             this.clickCount = 0; // Reset click count
             this.completed = false;
+            
+            // Reset navigation tracking
+            this.visitedPositions.clear();
+            this.maxVisitedImageIndex = 0;
+            this.maxVisitedBoxIndex = 0;
+            
             this.showGroup(this.currentGroup);
         };
         buttonContainer.appendChild(tryAgainButton);
@@ -830,6 +1101,12 @@ class ImageViewerStandalone {
         this.currentBoxIndex = 0;
         this.demoStarted = false;
         this.completed = false;
+        
+        // Reset navigation tracking
+        this.visitedPositions.clear();
+        this.maxVisitedImageIndex = 0;
+        this.maxVisitedBoxIndex = 0;
+        
         if (this.currentGroup) {
             this.showGroup(this.currentGroup);
         }
