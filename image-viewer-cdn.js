@@ -191,7 +191,6 @@ class ImageViewerStandalone {
             .viewer-content {
                 position: relative;
                 width: 1200px;
-                height: 100%;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
@@ -201,7 +200,6 @@ class ImageViewerStandalone {
 
             .viewer-image-container {
                 position: relative;
-                margin-bottom: 10px;
                 width: 1200px;
                 flex: 1;
                 display: flex;
@@ -584,7 +582,7 @@ class ImageViewerStandalone {
 
             .chat-bubble {
                 position: absolute;
-                bottom: 20px;
+                bottom: 76px;
                 right: 20px;
                 background: var(--viewer-description-bg);
                 color: var(--viewer-text);
@@ -792,7 +790,7 @@ class ImageViewerStandalone {
                 
                 // Use marked.js to render markdown if available, otherwise fallback to plain text
                 if (typeof marked !== 'undefined') {
-                    chatBubble.innerHTML = marked.parse(boxData.description);
+                    chatBubble.innerHTML = marked.parseInline(boxData.description);
                 } else {
                     chatBubble.textContent = boxData.description;
                 }
