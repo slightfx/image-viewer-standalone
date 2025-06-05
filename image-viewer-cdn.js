@@ -6,7 +6,7 @@ class ImageViewerStandalone {
             : container;
             
         if (!this.container) {
-            throw new Error("Container element not found");
+            throw new Error("Container element not found2");
         }
         
         // Initialize properties
