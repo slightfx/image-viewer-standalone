@@ -581,6 +581,46 @@ class ImageViewerStandalone {
                 color: var(--viewer-text);
                 opacity: 0.7;
             }
+
+            .chat-bubble {
+                position: absolute;
+                bottom: 20px;
+                right: 20px;
+                background: var(--viewer-description-bg);
+                color: var(--viewer-text);
+                border-radius: 12px;
+                padding: 15px;
+                font-size: 14px;
+                line-height: 1.4;
+                max-width: 300px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                z-index: 10;
+                pointer-events: auto;
+                animation: fadeInBubble 0.3s ease-out;
+            }
+
+            .chat-bubble::before {
+                content: '';
+                position: absolute;
+                bottom: -8px;
+                right: 20px;
+                width: 0;
+                height: 0;
+                border-left: 8px solid transparent;
+                border-right: 8px solid transparent;
+                border-top: 8px solid var(--viewer-description-bg);
+            }
+
+            @keyframes fadeInBubble {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
         `;
         
         const styleElement = document.createElement('style');
@@ -741,27 +781,26 @@ class ImageViewerStandalone {
         };
 
         imageWrapper.appendChild(imageElement);
+        imageWrapper.appendChild(boxOverlay);
         
-        // If there's a description for the current box, add it directly inside the image wrapper (under the image)
+        // If there's a description for the current box, add it as a chat bubble in the lower right corner
         if (imgData.boxes && imgData.boxes.length > 0 && this.currentBoxIndex < imgData.boxes.length) {
             const boxData = imgData.boxes[this.currentBoxIndex];
             if (boxData.description) {
-                const descriptionElement = document.createElement('div');
-                descriptionElement.className = 'viewer-description';
+                const chatBubble = document.createElement('div');
+                chatBubble.className = 'chat-bubble';
                 
                 // Use marked.js to render markdown if available, otherwise fallback to plain text
                 if (typeof marked !== 'undefined') {
-                    descriptionElement.innerHTML = marked.parse(boxData.description);
+                    chatBubble.innerHTML = marked.parse(boxData.description);
                 } else {
-                    descriptionElement.textContent = boxData.description;
+                    chatBubble.textContent = boxData.description;
                 }
                 
-                // Add description inside the image wrapper, after the image element
-                imageWrapper.appendChild(descriptionElement);
+                // Add chat bubble to the image wrapper
+                imageWrapper.appendChild(chatBubble);
             }
         }
-        
-        imageWrapper.appendChild(boxOverlay);
         imageContainer.appendChild(imageWrapper);
         
         this.contentContainer.appendChild(imageContainer);
@@ -864,7 +903,7 @@ class ImageViewerStandalone {
 
     getCurrentStepNumber() {
         // Calculate current step number based on current position
-        let stepNumber = 1;
+        let stepNumber = 0;
         for (let i = 0; i < this.currentImageIndex; i++) {
             const imgData = this.currentGroup.images[i];
             if (imgData.boxes) {
