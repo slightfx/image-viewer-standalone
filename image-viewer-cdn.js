@@ -576,11 +576,6 @@ class ImageViewerStandalone {
                 font-weight: 600;
             }
 
-            .pagination-remaining {
-                color: var(--viewer-text);
-                opacity: 0.7;
-            }
-
             .chat-bubble {
                 position: absolute;
                 bottom: 49px;
@@ -866,11 +861,6 @@ class ImageViewerStandalone {
         progressText.className = 'pagination-progress';
         progressText.textContent = `Step ${currentStep} of ${totalSteps}`;
         progressInfo.appendChild(progressText);
-        
-        const remainingText = document.createElement('span');
-        remainingText.className = 'pagination-remaining';
-        remainingText.textContent = `(${completedSteps} completed)`;
-        progressInfo.appendChild(remainingText);
         
         paginationContainer.appendChild(progressInfo);
         this.contentContainer.appendChild(paginationContainer);
