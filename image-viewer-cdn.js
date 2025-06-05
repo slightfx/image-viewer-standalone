@@ -582,8 +582,8 @@ class ImageViewerStandalone {
 
             .chat-bubble {
                 position: absolute;
-                bottom: 20px;
-                right: 33px;
+                bottom: 57px;
+                right: 9px;
                 background: var(--viewer-description-bg);
                 color: var(--viewer-text);
                 border-radius: 12px;
@@ -597,17 +597,7 @@ class ImageViewerStandalone {
                 animation: fadeInBubble 0.3s ease-out;
             }
 
-            .chat-bubble::before {
-                content: '';
-                position: absolute;
-                bottom: -8px;
-                right: 20px;
-                width: 0;
-                height: 0;
-                border-left: 8px solid transparent;
-                border-right: 8px solid transparent;
-                border-top: 8px solid var(--viewer-description-bg);
-            }
+    
 
             @keyframes fadeInBubble {
                 from {
