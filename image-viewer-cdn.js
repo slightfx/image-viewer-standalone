@@ -221,7 +221,7 @@ class ImageViewerStandalone {
                 border: 0px solid #ddd;
                 box-sizing: border-box;
                 background: #fff;
-                padding-bottom: 10px;
+                padding-bottom: 0px;
             }
             
             .viewer-image-container img {
@@ -230,7 +230,7 @@ class ImageViewerStandalone {
                 width: auto;
                 height: auto;
                 object-fit: contain;
-                
+                border-radius: 20px;
             }
 
             .viewer-image-container .viewer-description {
@@ -582,8 +582,8 @@ class ImageViewerStandalone {
 
             .chat-bubble {
                 position: absolute;
-                bottom: 76px;
-                right: 20px;
+                bottom: 20px;
+                right: 33px;
                 background: var(--viewer-description-bg);
                 color: var(--viewer-text);
                 border-radius: 12px;
